@@ -1,8 +1,8 @@
 # Carla environment settings
 CARLA_PATH = '../CARLA_0.9.6_Python_3.7'  # Path to Carla root folder
 CARLA_HOSTS_TYPE = 'local'  # 'local' or 'remote', 'local' means that script can start and restart Carla Simulator
-CARLA_HOSTS_NO = 4
-CARLA_HOSTS = [['localhost', 2000, 10], ['localhost', 2002, 10], ['localhost', 2004, 10], ['localhost', 2006, 10], ['localhost', 2008, 10], ['localhost', 2010, 10], ['localhost', 2012, 10], ['localhost', 2014, 10]]  # List of hosts and ports and worlds to use, at least 2 ports of difference as Carla uses N and N+1 port, Town01 to Town97 for world currently, Town01 to Town07 for world are currently available, int number instead - random world change interval in minutes
+CARLA_HOSTS_NO = 1
+CARLA_HOSTS = [['localhost', 2000, 10], ['localhost', 2002, 10]]  # List of hosts and ports and worlds to use, at least 2 ports of difference as Carla uses N and N+1 port, Town01 to Town97 for world currently, Town01 to Town07 for world are currently available, int number instead - random world change interval in minutes
 SECONDS_PER_EPISODE = 10
 EPISODE_FPS = 60  # Desired
 IMG_WIDTH = 480
@@ -18,10 +18,10 @@ PREVIEW_CAMERA_RES = [[640, 400, -5, 0, 2.5], [1280, 800, -5, 0, 2.5]]  # Availa
 COLLISION_FILTER = [['static.sidewalk', -1], ['static.road', -1], ['vehicle.', 500]]  # list of pairs: agent id (can be part of the name) and impulse value allowed (-1 - disable collision detection entirely)
 
 # Agent settings
-AGENTS = 4
-AGENT_MEMORY_FRACTION = 0.12
-AGENT_GPU = 1#[]  # None, a number (to use given GPU for all agents) or a list - example [0, 1, 1] (first agent - GPU 0, 2nd and 3rd GPU 1)
-AGENT_CARLA_INSTANCE = [1, 2, 3, 4]  # Empty list for first Carla instance or list in size of AGENTS with Carla instance bounds for agents, for excample [1, 1, 2, 2]
+AGENTS = 1
+AGENT_MEMORY_FRACTION = 0.1
+AGENT_GPU = None  # None, a number (to use given GPU for all agents) or a list - example [0, 1, 1] (first agent - GPU 0, 2nd and 3rd GPU 1)
+AGENT_CARLA_INSTANCE = []  # Empty list for first Carla instance or list in size of AGENTS with Carla instance bounds for agents, for excample [1, 1, 2, 2]
 UPDATE_WEIGHTS_EVERY = 0  # How frequently to update weights (compared to trainer fits), 0 for episode start only
 AGENT_SHOW_PREVIEW = []  # List of agent id's so show a preview, or empty list
 AGENT_SYNCED = True  # Synchronizes agent with frame updates from Carla
@@ -31,18 +31,18 @@ AGENT_ADDITIONAL_DATA = ['kmh']  # What additional data to include next to image
 # Trainer settings
 MINIBATCH_SIZE = 16  # How many steps (samples) to use for training
 PREDICTION_BATCH_SIZE = 1  # How many samples to predict at once (the more, the faster)
-TRAINING_BATCH_SIZE = MINIBATCH_SIZE  # How many samples to fit at once (the more, the faster) - should be MINIBATCH_SIZE divided by power of 2
+TRAINING_BATCH_SIZE = MINIBATCH_SIZE // 2  # How many samples to fit at once (the more, the faster) - should be MINIBATCH_SIZE divided by power of 2
 UPDATE_TARGET_EVERY = 100  # Terminal states (end of episodes)
 MODEL_NAME = '5_residual_#CNN_KERNELS#'  # model name, prefixed from sources/models.py, #MODEL_ARCHITECTURE# adds model architectore acronym, #CNN_KERNELS# adds number of kernels from all CNN layers
 MIN_REWARD = 100  # For model save
-TRAINER_MEMORY_FRACTION = 0.4
-TRAINER_GPU = 1  # None - not set, 0, 1, ... - GPU with given index
+TRAINER_MEMORY_FRACTION = 0.6
+TRAINER_GPU = None  # None - not set, 0, 1, ... - GPU with given index
 SAVE_CHECKPOINT_EVERY = 100  # episodes
 
 # DQN settings
 DISCOUNT = 0.99
-REPLAY_MEMORY_SIZE = 500_000  # How many last steps to keep for model training
-MIN_REPLAY_MEMORY_SIZE = 20_000  # Minimum number of steps in a memory to start training
+REPLAY_MEMORY_SIZE = 20_000  # How many last steps to keep for model training
+MIN_REPLAY_MEMORY_SIZE = 5_000  # Minimum number of steps in a memory to start training
 
 # Exploration settings
 START_EPSILON = 1
