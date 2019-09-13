@@ -59,7 +59,7 @@ OPTIMIZER_LEARNING_RATE = 0.001
 OPTIMIZER_DECAY = 0.0
 
 # Conv Cam
-CONV_CAM_LAYER = 'auto'
+CONV_CAM_LAYER = 'auto_act'  # 'auto' - finds and uses last activation layer, 'auto_act' - uses Activation layer after last convolution layer if exists
 CONV_CAM_AGENTS = [1]
 
 # Console settings

@@ -2,6 +2,10 @@ from sources import play_agent, start_carla, get_hparams, ConsoleStats, CarlaEnv
 import os
 from threading import Thread
 
+# Replacement for shared multiprocessing object when playing
+class PauseObject:
+    value = 0
+
 if __name__ == '__main__':
     
     # Load hparams if they are being saved by trainer
@@ -28,10 +32,11 @@ if __name__ == '__main__':
     start_carla(playing=True)
 
     # Run Carla settings (weather, NPC control) in a separate thread
-    carla_settings = CarlaEnvSettings(0, car_npcs=hparams['car_npcs'])
+    pause_object = PauseObject()
+    carla_settings = CarlaEnvSettings(0, [pause_object], car_npcs=hparams['car_npcs'])
     carla_settings_thread = Thread(target=carla_settings.update_settings_in_loop, daemon=True)
     carla_settings_thread.start()
 
     # Play
     print(f'Starting agent ({model})...')
-    play_agent(model, ConsoleStats.print_short)
+    play_agent(model, pause_object, ConsoleStats.print_short)

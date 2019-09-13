@@ -402,7 +402,7 @@ def start(playing=False):
                             pass
                 break
             except Exception as e:
-                print(str(e))
+                #print(str(e))
                 time.sleep(0.1)
 
 
@@ -445,7 +445,7 @@ def restart(playing=False):
 
                 break
             except Exception as e:
-                print(str(e))
+                #print(str(e))
                 time.sleep(0.1)
 
             retries += 1

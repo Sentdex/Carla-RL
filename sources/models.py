@@ -200,6 +200,40 @@ def model_base_5_wide_CNN(input_shape):
 
     return input, cnn_5_gap
 
+# 5 CNN layer with residual connections and no activations model
+def model_base_5_wide_CNN_noact(input_shape):
+    input = Input(shape=input_shape)
+
+    cnn_1_c1 = Conv2D(64, (7, 7), strides=(3, 3), padding='same')(input)
+    cnn_1_a = Activation('relu')(cnn_1_c1)
+
+    cnn_2_c1 = Conv2D(64, (5, 5), strides=(3, 3), padding='same')(cnn_1_a)
+    #cnn_2_a1 = Activation('relu')(cnn_2_c1)
+    cnn_2_c2 = Conv2D(64, (3, 3), strides=(3, 3), padding='same')(cnn_1_a)
+    #cnn_2_a2 = Activation('relu')(cnn_2_c2)
+    cnn_2_ap = AveragePooling2D(pool_size=(3, 3), strides=(3, 3), padding='same')(cnn_1_a)
+    cnn_2_c = Concatenate()([cnn_2_c1, cnn_2_c2, cnn_2_ap])
+
+    cnn_3_c1 = Conv2D(128, (5, 5), strides=(2, 2), padding='same')(cnn_2_c)
+    #cnn_3_a1 = Activation('relu')(cnn_3_c1)
+    cnn_3_c2 = Conv2D(128, (3, 3), strides=(2, 2), padding='same')(cnn_2_c)
+    #cnn_3_a2 = Activation('relu')(cnn_3_c2)
+    cnn_3_ap = AveragePooling2D(pool_size=(2, 2), strides=(2, 2), padding='same')(cnn_2_c)
+    cnn_3_c = Concatenate()([cnn_3_c1, cnn_3_c2, cnn_3_ap])
+
+    cnn_4_c1 = Conv2D(256, (5, 5), strides=(2, 2), padding='same')(cnn_3_c)
+    #cnn_4_a1 = Activation('relu')(cnn_4_c1)
+    cnn_4_c2 = Conv2D(256, (3, 3), strides=(2, 2), padding='same')(cnn_3_c)
+    #cnn_4_a2 = Activation('relu')(cnn_4_c2)
+    cnn_4_ap = AveragePooling2D(pool_size=(2, 2), strides=(2, 2), padding='same')(cnn_3_c)
+    cnn_4_c = Concatenate()([cnn_4_c1, cnn_4_c2, cnn_4_ap])
+
+    cnn_5_c1 = Conv2D(512, (3, 3), strides=(2, 2), padding='same')(cnn_4_c)
+    #cnn_5_a1 = Activation('relu')(cnn_5_c1)
+    cnn_5_gap = GlobalAveragePooling2D()(cnn_5_c1)
+
+    return input, cnn_5_gap
+
 # ---
 # Model heads
 

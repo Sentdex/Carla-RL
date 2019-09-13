@@ -82,6 +82,8 @@ class ARTDQNAgent:
         for index, layer in enumerate(model.layers):
             layer_name = layer.__class__.__name__.split('_')[-1]
             if layer_name == 'Activation' or layer_name == 'InputLayer':
+                if layer_name == 'Activation' and settings.CONV_CAM_LAYER == 'auto_act' and index == last_conv_layer + 1:
+                    last_conv_layer += 1
                 continue
 
             if layer_name.startswith('Conv'):
@@ -103,7 +105,7 @@ class ARTDQNAgent:
 
         settings.MODEL_NAME = settings.MODEL_NAME.replace('#MODEL_ARCHITECTURE#', model_architecture)
         settings.MODEL_NAME = settings.MODEL_NAME.replace('#CNN_KERNELS#', cnn_kernels)
-        self.convcam_layer = last_conv_layer if settings.CONV_CAM_LAYER == 'auto' else settings.CONV_CAM_LAYER
+        self.convcam_layer = last_conv_layer if settings.CONV_CAM_LAYER in ['auto', 'auto_act'] else settings.CONV_CAM_LAYER
 
     # Compiles a model given learning rate and decay factor
     def compile_model(self, model, lr, decay):
@@ -356,6 +358,10 @@ def run(id, carla_instance, stop, pause, episode, epsilon, show_preview, weights
         # For synced mode
         last_processed_cam_update = 0
 
+        # Reset min and max values for Convcam
+        conv_min = None
+        conv_max = None
+
         # Steps
         while True:
 
@@ -392,8 +398,12 @@ def run(id, carla_instance, stop, pause, episode, epsilon, show_preview, weights
                 # Convcam
                 if agent.show_conv_cam:
 
+                    # Calculate min and max values and add them weighted - stabilizes image flickering
+                    conv_min = np.min(qs[1]) if conv_min is None else 0.8 * conv_min + 0.2 * np.min(qs[1])
+                    conv_max = np.max(qs[1]) if conv_max is None else 0.8 * conv_max + 0.2 * np.max(qs[1])
+
                     # Normalize to 0..255
-                    conv_preview = ((qs[1] - np.min(qs[1])) * 255 / np.ptp(qs[1])).astype(np.uint8)
+                    conv_preview = ((qs[1] - conv_min) * 255 / (conv_max - conv_min)).astype(np.uint8)
 
                     # Swap axes and reshape to format output image
                     conv_preview = np.moveaxis(conv_preview, 1, 2)
@@ -576,7 +586,17 @@ def run(id, carla_instance, stop, pause, episode, epsilon, show_preview, weights
 
 
 # Play in environment
-def play(model_path, console_print_callback):
+def play(model_path, pause, console_print_callback):
+
+    # Set GPU used for an agent
+    if settings.AGENT_GPU is not None and type(settings.AGENT_GPU) == int:
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(settings.AGENT_GPU)
+    elif settings.AGENT_GPU is not None and type(settings.AGENT_GPU) == list:
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(settings.AGENT_GPU[id])
+
+    # Agent memory fraction
+    gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=settings.AGENT_MEMORY_FRACTION)
+    backend.set_session(tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)))
 
     # Create an agent
     agent = ARTDQNAgent(model_path, id=0)
@@ -597,6 +617,33 @@ def play(model_path, console_print_callback):
     # Main loop
     while True:
 
+        # Carla want's agent to pause (world change) -pause and inform Carla about that
+        if pause.value == 1:
+            pause.value = 2
+
+        # Wait for Carla to release pause
+        if pause.value == 2:
+            time.sleep(0.1)
+            continue
+
+        # Pause lock released, reconnect and play
+        if pause.value == 3:
+            pause.value = 0
+            try:
+                env.destroy_agents()
+            except:
+                pass
+            try:
+                env = CarlaEnv(0, playing=True)
+                env.frametimes = deque(maxlen=60)
+                env.preview_camera_enabled = settings.PREVIEW_CAMERA_RES[0]
+            except:
+                pass
+
+            # Sleep for a second and restart episode
+            time.sleep(1)
+            continue
+
         # Destroy agents if there are any and restart environment
         current_state = env.reset()
         env.collision_hist = []
@@ -606,6 +653,10 @@ def play(model_path, console_print_callback):
 
         # For synced mode
         last_processed_cam_update = 0
+
+        # Reset min and max values for Convcam
+        conv_min = None
+        conv_max = None
 
         # Loop over steps
         while True:
@@ -630,8 +681,13 @@ def play(model_path, console_print_callback):
 
             # Convcam
             if agent.show_conv_cam:
+
+                # Calculate min and max values and add them weighted - stabilizes image flickering
+                conv_min = np.min(qs[1]) if conv_min is None else 0.8*conv_min + 0.2*np.min(qs[1])
+                conv_max = np.max(qs[1]) if conv_max is None else 0.8*conv_max + 0.2*np.max(qs[1])
+
                 # Normalize to 0..255
-                conv_preview = ((qs[1] - np.min(qs[1])) * 255 / np.ptp(qs[1])).astype(np.uint8)
+                conv_preview = ((qs[1] - conv_min) * 255 / (conv_max - conv_min)).astype(np.uint8)
 
                 # Swap axes and reshape to format output image
                 conv_preview = np.moveaxis(conv_preview, 1, 2)
@@ -679,7 +735,7 @@ def play(model_path, console_print_callback):
             current_state = new_state
 
             # If 'done' flag from environment is set - end of an episode
-            if done:
+            if done or pause.value > 0:
                 break
 
             # Frame time, also whole episode time (including sleeping, for agent FPS measurement)
