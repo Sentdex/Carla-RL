@@ -1,0 +1,6 @@
+numpy
+tensorflow-gpu
+keras
+opencv-python
+psutil
+colorama
